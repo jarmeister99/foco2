@@ -68,7 +68,7 @@ model FocusDrop {
 
   MessageContentStrategy          MessageContentStrategy            @relation(fields: [messageContentStrategyId], references: [id])
   messageContentStrategyId        Int
-  MessageContentStrategyAttribute MessageContentStrategyAttribute[]
+  MessageContentStrategyAttributes MessageContentStrategyAttribute[]
 
   AutoreplyContentStrategy           AutoreplyContentStrategy            @relation(fields: [autoreplyContentStrategyId], references: [id])
   autoreplyContentStrategyId         Int
@@ -110,7 +110,7 @@ model DeliveryStrategyAttribute {
   value       String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id], onDelete: Cascade)
   focusDropId Int
 }
 
@@ -130,7 +130,7 @@ model AutoreplyContentStrategyAttribute {
   value       String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id], onDelete: Cascade)
   focusDropId Int
 }
 
@@ -150,7 +150,7 @@ model MessageContentStrategyAttribute {
   value       String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id], onDelete: Cascade)
   focusDropId Int
 }
 
@@ -170,6 +170,6 @@ model AutoreplyTimingStrategyAttribute {
   value       String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id], onDelete: Cascade)
   focusDropId Int
 }

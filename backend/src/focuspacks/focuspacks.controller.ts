@@ -11,9 +11,12 @@ import { Prisma } from '@prisma/client';
 import { AddDropToPackDto } from './dtos/add-drop-to-pack.dto';
 import {
   AddDropServiceInput,
-  CreateDropServiceInput,
+  CreatePromptDropServiceInput,
 } from './types/focusdrops.service.types';
-import { CreateDropInPackDto } from './dtos/create-drop-in-pack.dto';
+import {
+  CreateDropInPackDto,
+  CreatePromptDropInPackDto,
+} from './dtos/create-drop-in-pack.dto';
 
 @Controller('focuspacks')
 export class FocuspacksController {
@@ -40,16 +43,20 @@ export class FocuspacksController {
     return this.focuspacksService.removeUserFromPack(userId, focusPackId);
   }
 
-  @Post(':packId/drops/create')
-  createDropInPack(
+  @Post(':packId/drops/prompt/create')
+  createPromptDropInPack(
     @Param('packId', ParseIntPipe) packId: number,
-    @Body() createDropInPackDto: CreateDropInPackDto,
+    @Body() createPromptDropInPackDto: CreatePromptDropInPackDto,
   ) {
-    const servicePayload: CreateDropServiceInput = {
-      type: createDropInPackDto.dropType,
-      specificDropPayload: {},
+    const servicePayload: CreatePromptDropServiceInput = {
+      body: createPromptDropInPackDto.body,
+      mediaUrl: createPromptDropInPackDto.mediaUrl,
     };
-    return this.focuspacksService.createDropInPack(packId, servicePayload);
+    return this.focuspacksService.createDropInPack(
+      packId,
+      'PROMPT',
+      servicePayload,
+    );
   }
 
   @Post('packId/drops/add')
