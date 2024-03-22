@@ -1,0 +1,175 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  text       String
+  mediaUrl   String
+  senderId   Int
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId Int
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model User {
+  id                  Int                @id @default(autoincrement())
+  name                String
+  number              String
+  dropTime            DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  sentMessages        Message[]          @relation("SentMessages")
+  receivedMessages    Message[]          @relation("ReceivedMessages")
+  respondedTo         FocusDrop[]        @relation("RespondedTo")
+  activeFocusPackages UserFocusPackage[] // Add this line
+}
+
+model FocusPackage {
+  id          Int                @id @default(autoincrement())
+  name        String
+  description String
+  drops       FocusDrop[]
+  startAtDate DateTime
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  activeUsers UserFocusPackage[] // Add this line
+}
+
+// Define the join table for the many-to-many relationship
+model UserFocusPackage {
+  userId         Int
+  focusPackageId Int
+  user           User         @relation(fields: [userId], references: [id])
+  focusPackage   FocusPackage @relation(fields: [focusPackageId], references: [id])
+
+  @@id([userId, focusPackageId]) // Composite primary key
+}
+
+model FocusDrop {
+  id              Int           @id @default(autoincrement())
+  type            FocusDropType @relation(fields: [focusDropTypeId], references: [id])
+  FocusPackage    FocusPackage? @relation(fields: [focusPackageId], references: [id])
+  focusPackageId  Int?
+  focusDropTypeId Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  MessageContentStrategy          MessageContentStrategy            @relation(fields: [messageContentStrategyId], references: [id])
+  messageContentStrategyId        Int
+  MessageContentStrategyAttribute MessageContentStrategyAttribute[]
+
+  AutoreplyContentStrategy           AutoreplyContentStrategy            @relation(fields: [autoreplyContentStrategyId], references: [id])
+  autoreplyContentStrategyId         Int
+  AutoreplyContentStrategyAttributes AutoreplyContentStrategyAttribute[]
+
+  AutoreplyTimingStrategy           AutoreplyTimingStrategy            @relation(fields: [autoreplyTimingStrategyId], references: [id])
+  autoreplyTimingStrategyId         Int
+  AutoreplyTimingStrategyAttributes AutoreplyTimingStrategyAttribute[]
+
+  DeliveryStrategy           DeliveryStrategy            @relation(fields: [deliveryStrategyId], references: [id])
+  deliveryStrategyId         Int
+  DeliveryStrategyAttributes DeliveryStrategyAttribute[]
+
+  responders User[] @relation("RespondedTo")
+}
+
+model FocusDropType {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String
+  FocusDrops  FocusDrop[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model DeliveryStrategy {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String
+  strategyAttributeKeys String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  FocusDrops  FocusDrop[]
+}
+
+model DeliveryStrategyAttribute {
+  id          Int       @id @default(autoincrement())
+  key         String
+  value       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  focusDropId Int
+}
+
+model AutoreplyContentStrategy {
+  id                    Int         @id @default(autoincrement())
+  name                  String      @unique
+  description           String
+  strategyAttributeKeys String[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  FocusDrops            FocusDrop[]
+}
+
+model AutoreplyContentStrategyAttribute {
+  id          Int       @id @default(autoincrement())
+  key         String
+  value       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  focusDropId Int
+}
+
+model MessageContentStrategy {
+  id                    Int         @id @default(autoincrement())
+  name                  String      @unique
+  description           String
+  strategyAttributeKeys String[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  FocusDrops            FocusDrop[]
+}
+
+model MessageContentStrategyAttribute {
+  id          Int       @id @default(autoincrement())
+  key         String
+  value       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  focusDropId Int
+}
+
+model AutoreplyTimingStrategy {
+  id                    Int         @id @default(autoincrement())
+  name                  String      @unique
+  description           String
+  strategyAttributeKeys String[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  FocusDrops            FocusDrop[]
+}
+
+model AutoreplyTimingStrategyAttribute {
+  id          Int       @id @default(autoincrement())
+  key         String
+  value       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  focusDropId Int
+}
