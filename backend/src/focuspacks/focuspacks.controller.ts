@@ -48,14 +48,10 @@ export class FocuspacksController {
     @Param('packId', ParseIntPipe) packId: number,
     @Body() createPromptDropInPackDto: CreatePromptDropInPackDto,
   ) {
-    const servicePayload: CreatePromptDropServiceInput = {
-      body: createPromptDropInPackDto.body,
-      mediaUrl: createPromptDropInPackDto.mediaUrl,
-    };
     return this.focuspacksService.createDropInPack(
       packId,
       'PROMPT',
-      servicePayload,
+      createPromptDropInPackDto,
     );
   }
 
