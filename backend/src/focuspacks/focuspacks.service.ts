@@ -3,7 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FocusDrop, Prisma } from '@prisma/client';
 import {
   AddDropServiceInput,
-  CreateDropServiceInput,
+  CreatePromptDropServiceInput,
+  DropType,
 } from './types/focusdrops.service.types';
 
 @Injectable()
@@ -60,11 +61,15 @@ export class FocuspacksService {
     return latestUserFocusPackage?.focusPackage;
   }
 
-  async createDropInPack(packId, servicePayload: CreateDropServiceInput) {
+  async createDropInPack(
+    packId: number,
+    dropType: DropType,
+    payload: CreatePromptDropServiceInput,
+  ) {
     let createdDrop: FocusDrop;
-    switch (servicePayload.type) {
+    switch (dropType) {
       case 'PROMPT':
-        createdDrop = await this.createPromptDrop(servicePayload);
+        createdDrop = await this.createPromptDrop(payload);
         break;
       case 'NUDGE':
         // createdDrop = await this.createNudgeDrop(servicePayload);
@@ -89,6 +94,10 @@ export class FocuspacksService {
         drops: {
           include: {
             type: true,
+            MessageContentStrategyAttributes: true,
+            AutoreplyContentStrategyAttributes: true,
+            AutoreplyTimingStrategyAttributes: true,
+            DeliveryStrategyAttributes: true,
           },
         },
       },
@@ -100,7 +109,7 @@ export class FocuspacksService {
     });
   }
 
-  private async createPromptDrop(servicePayload: CreateDropServiceInput) {
+  private async createPromptDrop(servicePayload: CreatePromptDropServiceInput) {
     const dropType = await this.prismaService.focusDropType.findFirst({
       where: {
         name: 'PROMPT',
@@ -161,8 +170,34 @@ export class FocuspacksService {
         },
       },
     });
+
+    // create a new MessageContentStrategyAttribute associated with this drop
+    await this.prismaService.messageContentStrategyAttribute.create({
+      data: {
+        key: 'body',
+        value: servicePayload.body,
+        FocusDrop: {
+          connect: {
+            id: createdDrop.id,
+          },
+        },
+      },
+    });
+
+    await this.prismaService.messageContentStrategyAttribute.create({
+      data: {
+        key: 'mediaUrl',
+        value: servicePayload.mediaUrl,
+        FocusDrop: {
+          connect: {
+            id: createdDrop.id,
+          },
+        },
+      },
+    });
+
     return createdDrop;
   }
-  private createNudgeDrop(servicePayload: CreateDropServiceInput) {}
-  private createReflectionDrop(servicePayload: CreateDropServiceInput) {}
+  // private createNudgeDrop(servicePayload: CreateDropServiceInput) {}
+  // private createReflectionDrop(servicePayload: CreateDropServiceInput) {}
 }

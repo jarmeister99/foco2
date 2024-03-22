@@ -50,10 +50,15 @@ describe('Pack poller (e2e)', () => {
       currentFocusPack = response.body;
     });
     it('should be able to create a prompt focus drop within a focus pack', async () => {
+      const testPayload = {
+        body: 'Welcome to the first focus pack!',
+        mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      };
       const response = await request(app.getHttpServer())
-        .post(`/focuspacks/${currentFocusPack.id}/drops/create`)
+        .post(`/focuspacks/${currentFocusPack.id}/drops/prompt/create`)
         .send({
-          dropType: 'PROMPT',
+          body: testPayload.body,
+          mediaUrl: testPayload.mediaUrl,
         })
         .expect(201);
       const modifiedFocusPack = response.body;
@@ -68,6 +73,29 @@ describe('Pack poller (e2e)', () => {
 
       // make sure the drop is a prompt
       expect(createdDrop.type.name).toEqual('PROMPT');
+
+      const messageContentStrategyAttributes =
+        createdDrop.MessageContentStrategyAttributes;
+
+      expect(messageContentStrategyAttributes).toBeDefined();
+
+      // find the item in the list with key = 'body'
+      const bodyAttribute = messageContentStrategyAttributes.find(
+        (attr) => attr.key === 'body',
+      );
+      expect(bodyAttribute).toBeDefined();
+      expect(bodyAttribute.value).toEqual(testPayload.body);
+      // make sure the attribute is connected to the drop
+      expect(bodyAttribute.focusDropId).toEqual(createdDrop.id);
+
+      // find the item in the list with key = 'mediaUrl'
+      const mediaUrlAttribute = messageContentStrategyAttributes.find(
+        (attr) => attr.key === 'mediaUrl',
+      );
+      expect(mediaUrlAttribute).toBeDefined();
+      expect(mediaUrlAttribute.value).toEqual(testPayload.mediaUrl);
+      // make sure the attribute is connected to the drop
+      expect(mediaUrlAttribute.focusDropId).toEqual(createdDrop.id);
     });
   });
 
