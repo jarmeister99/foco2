@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MessageReceiverService } from '../message-receiver/message-receiver.service';
 import { Twilio } from 'twilio';
 
 @Injectable()
@@ -8,7 +9,10 @@ export class TwilioService {
   private authToken: string;
   private phoneNumber: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private messageReceiverService: MessageReceiverService,
+  ) {
     this.accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
     this.authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
     this.phoneNumber = this.configService.get<string>('TWILIO_PHONE_NUMBER');
@@ -24,7 +28,7 @@ export class TwilioService {
   }
 
   receiveSmsWebhook(data: any) {
-    Logger.log('Received Message; ', data);
+    this.messageReceiverService.handleReceivedMessage(data);
     return Promise.resolve({ success: true });
   }
 }

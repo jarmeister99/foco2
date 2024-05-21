@@ -6,6 +6,9 @@ import { TwilioModule } from './twilio/twilio.module';
 import { ConfigModule } from '@nestjs/config';
 import { FocuspacksModule } from './focuspacks/focuspacks.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { MessageReceiverModule } from './message-receiver/message-receiver.module';
+import { AutoreplyModule } from './autoreply/autoreply.module';
+import { PointsModule } from './points/points.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     MessagesModule,
     TwilioModule,
     FocuspacksModule,
+    MessageReceiverModule,
+    AutoreplyModule,
+    PointsModule,
   ],
 })
 export class AppModule {}

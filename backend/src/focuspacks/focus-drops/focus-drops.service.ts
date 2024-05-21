@@ -4,7 +4,7 @@ import { AutoreplyContentService } from '../strategy/autoreply-content/autoreply
 import { AutoreplyTimingService } from '../strategy/autoreply-timing/autoreply-timing.service';
 import { MessageContentService } from '../strategy/message-content/message-content.service';
 import { StrategyAttributesService } from '../strategy/strategy-attributes.service';
-import { FocusDropType } from '@prisma/client';
+import { FocusDrop, FocusDropType } from '@prisma/client';
 
 export type DropType = 'prompt' | 'nudge' | 'reflection';
 export function isDropType(value: string): value is DropType {
@@ -20,6 +20,45 @@ export class FocusDropsService {
     private autoreplyTimingService: AutoreplyTimingService,
     private strategyAttributesService: StrategyAttributesService,
   ) {}
+
+  async indicateUserResponse(dropId: number, userId: number) {
+    const drop = await this.prismaService.focusDrop.update({
+      where: { id: dropId },
+      data: {
+        responders: {
+          connect: { id: userId },
+        },
+      },
+      include: {
+        responders: true, // Optionally include to verify or use in further logic
+      },
+    });
+    return drop;
+  }
+
+  async getDropAutoreplyStrategyAndAttributes(dropId: number) {
+    const drop = await this.prismaService.focusDrop.findUnique({
+      where: { id: dropId },
+      include: {
+        AutoreplyTimingStrategy: true,
+        AutoreplyTimingStrategyAttributes: true,
+        AutoreplyContentStrategy: true,
+        AutoreplyContentStrategyAttributes: true,
+      },
+    });
+    return {
+      timingStrategy: drop.AutoreplyTimingStrategy,
+      timingAttributes: drop.AutoreplyTimingStrategyAttributes,
+      contentStrategy: drop.AutoreplyContentStrategy,
+      contentAttributes: drop.AutoreplyContentStrategyAttributes,
+    };
+  }
+
+  async getLatestDropForUserWithoutResponse(
+    userId: number,
+  ): Promise<FocusDrop | null> {
+    return null;
+  }
 
   async createDropInPack(
     packId: number,

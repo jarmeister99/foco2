@@ -32,16 +32,18 @@ model Message {
 }
 
 model User {
-  id                  Int                @id @default(autoincrement())
-  name                String
-  number              String
-  packStartHour       Int?
-  packEndHour         Int?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  sentMessages        Message[]          @relation("SentMessages")
-  receivedMessages    Message[]          @relation("ReceivedMessages")
-  respondedTo         FocusDrop[]        @relation("RespondedTo")
+  id               Int       @id @default(autoincrement())
+  name             String
+  number           String
+  packStartHour    Int?
+  packEndHour      Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  dropsReceived       FocusDrop[]        @relation("ReceivedDrops")
+  dropsRespondedTo    FocusDrop[]        @relation("RespondedDrops")
   activeFocusPackages UserFocusPackage[] // Add this line
   ActivePackages      ActivePackages[]
 }
@@ -93,7 +95,8 @@ model FocusDrop {
   deliveryStrategyId         Int
   DeliveryStrategyAttributes DeliveryStrategyAttribute[]
 
-  responders User[] @relation("RespondedTo")
+  receivers  User[] @relation("ReceivedDrops")
+  responders User[] @relation("RespondedDrops")
 }
 
 model FocusDropType {
