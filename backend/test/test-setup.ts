@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { ConsoleLogger, INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 
 export let app: INestApplication;
@@ -9,6 +9,7 @@ export const initializeTestApp = async () => {
     imports: [AppModule],
   }).compile();
 
+  moduleFixture.useLogger(new ConsoleLogger());
   app = moduleFixture.createNestApplication();
   return await app.init();
 };

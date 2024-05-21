@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   Post,
 } from '@nestjs/common';
@@ -11,16 +13,19 @@ import { Prisma } from '@prisma/client';
 import { AddDropToPackDto } from './dtos/add-drop-to-pack.dto';
 import {
   AddDropServiceInput,
-  CreatePromptDropServiceInput,
+  DropType,
 } from './types/focusdrops.service.types';
 import {
-  CreateDropInPackDto,
-  CreatePromptDropInPackDto,
-} from './dtos/create-drop-in-pack.dto';
+  FocusDropsService,
+  isDropType,
+} from './focus-drops/focus-drops.service';
 
 @Controller('focuspacks')
 export class FocuspacksController {
-  constructor(private readonly focuspacksService: FocuspacksService) {}
+  constructor(
+    private readonly focuspacksService: FocuspacksService,
+    private readonly dropsService: FocusDropsService,
+  ) {}
 
   @Post()
   createFocusPack(@Body() createFocusPackDto: Prisma.FocusPackageCreateInput) {
@@ -43,16 +48,35 @@ export class FocuspacksController {
     return this.focuspacksService.removeUserFromPack(userId, focusPackId);
   }
 
-  @Post(':packId/drops/prompt/create')
-  createPromptDropInPack(
+  @Post(':packId/drops/create/:type')
+  createDropInPack(
     @Param('packId', ParseIntPipe) packId: number,
-    @Body() createPromptDropInPackDto: CreatePromptDropInPackDto,
+    // TODO: should use ParseEnumPipe here
+    @Param('type') type: string,
+    @Body()
+    bodyParams: {
+      messageToSend: {
+        body: string;
+        mediaUrl: string;
+      };
+      autoreply?: {
+        body: string;
+        mediaUrl: string;
+      };
+    },
   ) {
-    return this.focuspacksService.createDropInPack(
-      packId,
-      'PROMPT',
-      createPromptDropInPackDto,
-    );
+    if (!isDropType(type)) {
+      throw new BadRequestException('Invalid drop type');
+    }
+    return this.dropsService.createDropInPack(packId, type, {
+      messageContent: {
+        body: bodyParams.messageToSend.body,
+        mediaUrl: bodyParams.messageToSend.mediaUrl,
+      },
+      ...(bodyParams.autoreply
+        ? { autoreplyContent: bodyParams.autoreply }
+        : {}),
+    });
   }
 
   @Post('packId/drops/add')

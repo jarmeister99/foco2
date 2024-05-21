@@ -2,8 +2,10 @@ import { INestApplication, Logger } from '@nestjs/common';
 import * as request from 'supertest';
 import { initializeTestApp } from '../test-setup';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { FocusDrop, FocusPackage, User } from '@prisma/client';
+import { FocusDrop, FocusPackage, Prisma, User } from '@prisma/client';
 import { FocuspacksService } from '../../src/focuspacks/focuspacks.service';
+import { StrategyAttributesService } from '../../src/focuspacks/strategy/strategy-attributes.service';
+import { checkStrategyAttribute } from './strategy_test_utils';
 
 describe('Pack poller (e2e)', () => {
   let app: INestApplication;
@@ -20,9 +22,6 @@ describe('Pack poller (e2e)', () => {
 
   describe('create a focus pack and three drops within it', () => {
     let currentFocusPack: FocusPackage;
-    let nudgeDrop: FocusDrop;
-    let promptDrop: FocusDrop;
-    let reflectionDrop: FocusDrop;
 
     beforeEach(async () => {
       await new Promise((r) => setTimeout(r, 50));
@@ -37,7 +36,6 @@ describe('Pack poller (e2e)', () => {
       await prismaService.focusPackage.deleteMany();
       await prismaService.focusDrop.deleteMany();
     });
-
     it('should be able to create a focus pack', async () => {
       const response = await request(app.getHttpServer())
         .post('/focuspacks')
@@ -54,19 +52,18 @@ describe('Pack poller (e2e)', () => {
         body: 'Welcome to the first focus pack!',
         mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       };
+      const testAutoreply = {
+        body: 'Nice autoreply',
+        mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      };
       const response = await request(app.getHttpServer())
-        .post(`/focuspacks/${currentFocusPack.id}/drops/prompt/create`)
+        .post(`/focuspacks/${currentFocusPack.id}/drops/create/prompt`)
         .send({
-          body: testPayload.body,
-          mediaUrl: testPayload.mediaUrl,
+          messageToSend: testPayload,
+          autoreply: testAutoreply,
         })
         .expect(201);
-      const modifiedFocusPack = response.body;
-      expect(modifiedFocusPack.id).toEqual(currentFocusPack.id);
-      expect(modifiedFocusPack.drops.length).toEqual(1);
-
-      // let's make sure the focus drop created is correct
-      const createdDrop = modifiedFocusPack.drops[0];
+      const createdDrop = response.body;
 
       // make sure the drop is connected to the pack
       expect(createdDrop.focusPackageId).toEqual(currentFocusPack.id);
@@ -74,28 +71,130 @@ describe('Pack poller (e2e)', () => {
       // make sure the drop is a prompt
       expect(createdDrop.type.name).toEqual('PROMPT');
 
-      const messageContentStrategyAttributes =
-        createdDrop.MessageContentStrategyAttributes;
-
-      expect(messageContentStrategyAttributes).toBeDefined();
-
-      // find the item in the list with key = 'body'
-      const bodyAttribute = messageContentStrategyAttributes.find(
-        (attr) => attr.key === 'body',
+      // --- check message content strategy attributes ---
+      checkStrategyAttribute(
+        createdDrop.MessageContentStrategyAttributes,
+        'body',
+        testPayload.body,
+        createdDrop,
       );
-      expect(bodyAttribute).toBeDefined();
-      expect(bodyAttribute.value).toEqual(testPayload.body);
-      // make sure the attribute is connected to the drop
-      expect(bodyAttribute.focusDropId).toEqual(createdDrop.id);
-
-      // find the item in the list with key = 'mediaUrl'
-      const mediaUrlAttribute = messageContentStrategyAttributes.find(
-        (attr) => attr.key === 'mediaUrl',
+      checkStrategyAttribute(
+        createdDrop.MessageContentStrategyAttributes,
+        'mediaUrl',
+        testPayload.mediaUrl,
+        createdDrop,
       );
-      expect(mediaUrlAttribute).toBeDefined();
-      expect(mediaUrlAttribute.value).toEqual(testPayload.mediaUrl);
-      // make sure the attribute is connected to the drop
-      expect(mediaUrlAttribute.focusDropId).toEqual(createdDrop.id);
+
+      // --- check autoreply content strategy attributes ---
+      checkStrategyAttribute(
+        createdDrop.AutoreplyContentStrategyAttributes,
+        'body',
+        testAutoreply.body,
+        createdDrop,
+      );
+      checkStrategyAttribute(
+        createdDrop.AutoreplyContentStrategyAttributes,
+        'mediaUrl',
+        testAutoreply.mediaUrl,
+        createdDrop,
+      );
+
+      // --- check autoreply timing strategy attributes ---
+      checkStrategyAttribute(
+        createdDrop.AutoreplyTimingStrategyAttributes,
+        'delayMinutes',
+        '0',
+        createdDrop,
+      );
+    });
+    it('should be able to create a nudge focus drop within a focus pack', async () => {
+      const testPayload = {
+        body: 'How are your goals going?',
+        mediaUrl: '',
+      };
+      const response = await request(app.getHttpServer())
+        .post(`/focuspacks/${currentFocusPack.id}/drops/create/nudge`)
+        .send({
+          messageToSend: {
+            body: testPayload.body,
+            mediaUrl: testPayload.mediaUrl,
+          },
+        })
+        .expect(201);
+      const createdDrop = response.body;
+
+      expect(createdDrop.type.name).toEqual('NUDGE');
+      expect(createdDrop.AutoreplyTimingStrategyAttributes).toEqual([]);
+      expect(createdDrop.AutoreplyContentStrategyAttributes).toEqual([]);
+
+      // --- check message content strategy attributes ---
+      checkStrategyAttribute(
+        createdDrop.MessageContentStrategyAttributes,
+        'body',
+        testPayload.body,
+        createdDrop,
+      );
+      checkStrategyAttribute(
+        createdDrop.MessageContentStrategyAttributes,
+        'mediaUrl',
+        testPayload.mediaUrl,
+        createdDrop,
+      );
+    });
+    it('should be able to create a reflection focus drop within a focus pack', async () => {
+      const testPayload = {
+        body: 'How did today feel??',
+        mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      };
+      const testAutoreply = {
+        body: 'Glad to hear it!',
+        mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      };
+      const response = await request(app.getHttpServer())
+        .post(`/focuspacks/${currentFocusPack.id}/drops/create/reflection`)
+        .send({
+          messageToSend: testPayload,
+          autoreply: testAutoreply,
+        })
+        .expect(201);
+      const createdDrop = response.body;
+      expect(createdDrop.type.name).toEqual('REFLECTION');
+
+      // --- check message content strategy attributes ---
+      checkStrategyAttribute(
+        createdDrop.MessageContentStrategyAttributes,
+        'body',
+        testPayload.body,
+        createdDrop,
+      );
+      checkStrategyAttribute(
+        createdDrop.MessageContentStrategyAttributes,
+        'mediaUrl',
+        testPayload.mediaUrl,
+        createdDrop,
+      );
+
+      // --- check autoreply content strategy attributes ---
+      checkStrategyAttribute(
+        createdDrop.AutoreplyContentStrategyAttributes,
+        'body',
+        testAutoreply.body,
+        createdDrop,
+      );
+      checkStrategyAttribute(
+        createdDrop.AutoreplyContentStrategyAttributes,
+        'mediaUrl',
+        testAutoreply.mediaUrl,
+        createdDrop,
+      );
+
+      // --- check autoreply timing strategy attributes ---
+      checkStrategyAttribute(
+        createdDrop.AutoreplyTimingStrategyAttributes,
+        'delayMinutes',
+        '0',
+        createdDrop,
+      );
     });
   });
 
@@ -128,10 +227,6 @@ describe('Pack poller (e2e)', () => {
       await prismaService.userFocusPackage.deleteMany();
       await prismaService.user.deleteMany();
       await prismaService.focusPackage.deleteMany();
-    });
-    beforeEach(async () => {
-      // Want to allow database to settle
-      await new Promise((r) => setTimeout(r, 100));
     });
     it('should be able to create a focus pack', async () => {
       const response = await request(app.getHttpServer())

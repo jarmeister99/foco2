@@ -5,10 +5,11 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('UserController (e2e)', () => {
   let app: INestApplication;
+  let prismaService: PrismaService;
 
   beforeAll(async () => {
     app = await initializeTestApp();
-    const prismaService = app.get(PrismaService);
+    prismaService = app.get(PrismaService);
     await prismaService.user.deleteMany();
   });
   afterAll(async () => {
@@ -20,9 +21,8 @@ describe('UserController (e2e)', () => {
   });
 
   describe('should be able to create, get, update, and then delete a user', () => {
-    let id;
-    beforeEach(async () => {
-      await new Promise((r) => setTimeout(r, 50));
+    afterEach(async () => {
+      await prismaService.user.deleteMany();
     });
     it('should be able to create a user', async () => {
       const user = await request(app.getHttpServer())
@@ -34,49 +34,73 @@ describe('UserController (e2e)', () => {
         .expect(201);
       expect(user.body.name).toEqual('Test User');
       expect(user.body.number).toEqual('+15551236789');
-      id = user.body.id;
     });
     it('should be able to get a user by id', async () => {
-      const user = await request(app.getHttpServer())
-        .get(`/users/${id}`)
+      const userId = (
+        await prismaService.user.create({
+          data: {
+            name: 'Test User',
+            number: '+15551236789',
+          },
+        })
+      ).id;
+
+      const fetchedUser = await request(app.getHttpServer())
+        .get(`/users/${userId}`)
         .expect(200);
-      expect(user.body.name).toEqual('Test User');
-      expect(user.body.number).toEqual('+15551236789');
+      expect(fetchedUser.body.name).toEqual('Test User');
+      expect(fetchedUser.body.number).toEqual('+15551236789');
     });
     it('should be able to update a user by id', async () => {
-      const user = await request(app.getHttpServer())
-        .patch(`/users/${id}`)
+      const userId = (
+        await prismaService.user.create({
+          data: {
+            name: 'Test User',
+            number: '+15551236789',
+          },
+        })
+      ).id;
+
+      const userToPatch = await request(app.getHttpServer())
+        .patch(`/users/${userId}`)
         .send({
           name: 'Test User Bob',
         })
         .expect(200);
-      expect(user.body.name).toEqual('Test User Bob');
-      expect(user.body.number).toEqual('+15551236789');
+      expect(userToPatch.body.name).toEqual('Test User Bob');
+      expect(userToPatch.body.number).toEqual('+15551236789');
     });
-    it('should be able to set a drop time on a user using a date object', async () => {
-      const user = await request(app.getHttpServer())
-        .patch(`/users/${id}`)
+    it('should be able to set drop times on a user', async () => {
+      const userId = (
+        await prismaService.user.create({
+          data: {
+            name: 'Test User',
+            number: '+15551236789',
+          },
+        })
+      ).id;
+
+      const patchedUser = await request(app.getHttpServer())
+        .patch(`/users/${userId}`)
         .send({
-          dropTime: new Date('2022-01-01T00:00:00Z'),
+          packStartHour: 1,
+          packEndHour: 2,
         })
         .expect(200);
-      expect(new Date(user.body.dropTime)).toEqual(
-        new Date('2022-01-01T00:00:00Z'),
-      );
-    });
-    it('should be able to set a drop time on a user using a date string', async () => {
-      const user = await request(app.getHttpServer())
-        .patch(`/users/${id}`)
-        .send({
-          dropTime: '2022-01-01T00:00:00Z',
-        })
-        .expect(200);
-      expect(new Date(user.body.dropTime)).toEqual(
-        new Date('2022-01-01T00:00:00Z'),
-      );
+      expect(patchedUser.body.packStartHour).toEqual(1);
+      expect(patchedUser.body.packEndHour).toEqual(2);
     });
     it('should be able to delete a user by id', async () => {
-      await request(app.getHttpServer()).delete(`/users/${id}`).expect(200);
+      const userId = (
+        await prismaService.user.create({
+          data: {
+            name: 'Test User',
+            number: '+15551236789',
+          },
+        })
+      ).id;
+
+      await request(app.getHttpServer()).delete(`/users/${userId}`).expect(200);
     });
   });
 

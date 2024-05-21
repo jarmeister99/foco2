@@ -1,12 +1,57 @@
-import { PrismaService } from 'src/prisma/prisma.service';
+import {
+  AutoreplyContentStrategy,
+  AutoreplyTimingStrategy,
+  DeliveryStrategy,
+  MessageContentStrategy,
+} from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateStrategyAttributeServiceInput,
   StrategyAttributeInputsTypes,
   StrategyModelAttribute,
 } from './strategy-attributes.service.types';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class StrategyAttributesService {
+  static readonly DEFAULT_STRATEGIES: {
+    messageContentStrategy: 'STATIC';
+    autoreplyContentStrategy: 'STATIC';
+    autoreplyTimingStrategy: 'TIMED';
+    deliveryStrategy: 'SPECIFIC_TIME';
+  };
+
   constructor(private prismaService: PrismaService) {}
+
+  static getStrategyAttributeEntryFromList(list: any[], name: string) {
+    const attribute = list.find((attr) => attr?.key === name);
+    return attribute ?? null;
+  }
+
+  async getDefaultStrategyMap() {
+    return {
+      messageContentStrategy:
+        await this.prismaService.getFirstEntityByName<MessageContentStrategy>(
+          'messageContentStrategy',
+          'STATIC',
+        ),
+      autoreplyContentStrategy:
+        await this.prismaService.getFirstEntityByName<AutoreplyContentStrategy>(
+          'autoreplyContentStrategy',
+          'STATIC',
+        ),
+      autoreplyTimingStrategy:
+        await this.prismaService.getFirstEntityByName<AutoreplyTimingStrategy>(
+          'autoreplyTimingStrategy',
+          'TIMED',
+        ),
+      deliveryStrategy:
+        await this.prismaService.getFirstEntityByName<DeliveryStrategy>(
+          'deliveryStrategy',
+          'SPECIFIC_TIME',
+        ),
+    };
+  }
 
   async getStrategyAttribute(
     dropId: number,

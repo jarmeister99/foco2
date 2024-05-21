@@ -27,4 +27,26 @@ export class PrismaService
       return { status: 'error', error: error.message };
     }
   }
+
+  async getFirstEntityByName<T>(
+    model: keyof PrismaClient,
+    name: string,
+  ): Promise<T> {
+    if (!Object.keys(this).includes(String(model))) {
+      throw new Error(`Model ${String(model)} not found`);
+    }
+    if (!Object.keys(this[model]).includes('findFirst')) {
+      throw new Error(
+        `Model ${String(model)} does not have a findFirst method`,
+      );
+    }
+    return (this[model] as any).findFirst({
+      where: {
+        name: {
+          equals: name,
+          mode: 'insensitive',
+        },
+      },
+    });
+  }
 }

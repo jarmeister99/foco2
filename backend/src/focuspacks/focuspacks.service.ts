@@ -1,18 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { FocusDrop, Prisma } from '@prisma/client';
-import {
-  AddDropServiceInput,
-  CreatePromptDropServiceInput,
-  DropType,
-} from './types/focusdrops.service.types';
+import { Prisma } from '@prisma/client';
+import { AddDropServiceInput } from './types/focusdrops.service.types';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class FocuspacksService {
   constructor(private prismaService: PrismaService) {}
 
-  create(createMessageDto: Prisma.FocusPackageCreateInput) {
-    return this.prismaService.focusPackage.create({ data: createMessageDto });
+  create(createFocusPackDto: Prisma.FocusPackageCreateInput) {
+    return this.prismaService.focusPackage.create({ data: createFocusPackDto });
   }
 
   addUserToPack(userId: number, packId: number) {
@@ -61,32 +58,6 @@ export class FocuspacksService {
     return latestUserFocusPackage?.focusPackage;
   }
 
-  async createDropInPack(
-    packId: number,
-    dropType: DropType,
-    payload: CreatePromptDropServiceInput,
-  ) {
-    let createdDrop: FocusDrop;
-    switch (dropType) {
-      case 'PROMPT':
-        createdDrop = await this.createPromptDrop(payload);
-        break;
-      case 'NUDGE':
-        // createdDrop = await this.createNudgeDrop(servicePayload);
-        break;
-      case 'REFLECTION':
-        // createdDrop = await this.createReflectionDrop(servicePayload);
-        break;
-      default:
-        throw new Error('Invalid focus drop type');
-    }
-    const addDropServicePayload: AddDropServiceInput = {
-      dropId: createdDrop.id,
-      packId: packId,
-    };
-    return await this.addDropToPack(addDropServicePayload);
-  }
-
   async addDropToPack(servicePayload: AddDropServiceInput) {
     return this.prismaService.focusPackage.update({
       where: { id: servicePayload.packId },
@@ -109,95 +80,19 @@ export class FocuspacksService {
     });
   }
 
-  private async createPromptDrop(servicePayload: CreatePromptDropServiceInput) {
-    const dropType = await this.prismaService.focusDropType.findFirst({
+  @Cron('45 * * * * *')
+  handlePacks() {}
+
+  private getUsersToSend() {
+    const now = new Date();
+    const hour = now.getHours();
+
+    return this.prismaService.user.findMany({
       where: {
-        name: 'PROMPT',
-      },
-    });
-    const defaultMessageContentStrategy =
-      await this.prismaService.messageContentStrategy.findFirst({
-        where: {
-          name: 'STATIC',
-        },
-      });
-    const defaultAutoreplyContentStrategy =
-      await this.prismaService.autoreplyContentStrategy.findFirst({
-        where: {
-          name: 'STATIC',
-        },
-      });
-    const defaultAutoreplyTimingStrategy =
-      await this.prismaService.autoreplyTimingStrategy.findFirst({
-        where: {
-          name: 'TIMED',
-        },
-      });
-
-    const defaultDeliveryStrategy =
-      await this.prismaService.deliveryStrategy.findFirst({
-        where: {
-          name: 'SPECIFIC_TIME',
-        },
-      });
-
-    const createdDrop = await this.prismaService.focusDrop.create({
-      data: {
-        type: {
-          connect: {
-            id: dropType.id,
-          },
-        },
-        MessageContentStrategy: {
-          connect: {
-            id: defaultMessageContentStrategy.id,
-          },
-        },
-        AutoreplyContentStrategy: {
-          connect: {
-            id: defaultAutoreplyContentStrategy.id,
-          },
-        },
-        AutoreplyTimingStrategy: {
-          connect: {
-            id: defaultAutoreplyTimingStrategy.id,
-          },
-        },
-        DeliveryStrategy: {
-          connect: {
-            id: defaultDeliveryStrategy.id,
-          },
+        packStartHour: {
+          lte: hour,
         },
       },
     });
-
-    // create a new MessageContentStrategyAttribute associated with this drop
-    await this.prismaService.messageContentStrategyAttribute.create({
-      data: {
-        key: 'body',
-        value: servicePayload.body,
-        FocusDrop: {
-          connect: {
-            id: createdDrop.id,
-          },
-        },
-      },
-    });
-
-    await this.prismaService.messageContentStrategyAttribute.create({
-      data: {
-        key: 'mediaUrl',
-        value: servicePayload.mediaUrl,
-        FocusDrop: {
-          connect: {
-            id: createdDrop.id,
-          },
-        },
-      },
-    });
-
-    return createdDrop;
   }
-  // private createNudgeDrop(servicePayload: CreateDropServiceInput) {}
-  // private createReflectionDrop(servicePayload: CreateDropServiceInput) {}
 }

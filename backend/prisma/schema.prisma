@@ -11,6 +11,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model ActivePackages {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id])
+  focusPackageId Int
+  focusPackage   FocusPackage @relation(fields: [focusPackageId], references: [id])
+}
+
 model Message {
   id         Int      @id @default(autoincrement())
   text       String
@@ -27,24 +35,27 @@ model User {
   id                  Int                @id @default(autoincrement())
   name                String
   number              String
-  dropTime            DateTime?
+  packStartHour       Int?
+  packEndHour         Int?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   sentMessages        Message[]          @relation("SentMessages")
   receivedMessages    Message[]          @relation("ReceivedMessages")
   respondedTo         FocusDrop[]        @relation("RespondedTo")
   activeFocusPackages UserFocusPackage[] // Add this line
+  ActivePackages      ActivePackages[]
 }
 
 model FocusPackage {
-  id          Int                @id @default(autoincrement())
-  name        String
-  description String
-  drops       FocusDrop[]
-  startAtDate DateTime
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  activeUsers UserFocusPackage[] // Add this line
+  id             Int                @id @default(autoincrement())
+  name           String
+  description    String
+  drops          FocusDrop[]
+  startAtDate    DateTime
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  activeUsers    UserFocusPackage[] // Add this line
+  ActivePackages ActivePackages[]
 }
 
 // Define the join table for the many-to-many relationship
@@ -66,8 +77,8 @@ model FocusDrop {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  MessageContentStrategy          MessageContentStrategy            @relation(fields: [messageContentStrategyId], references: [id])
-  messageContentStrategyId        Int
+  MessageContentStrategy           MessageContentStrategy            @relation(fields: [messageContentStrategyId], references: [id])
+  messageContentStrategyId         Int
   MessageContentStrategyAttributes MessageContentStrategyAttribute[]
 
   AutoreplyContentStrategy           AutoreplyContentStrategy            @relation(fields: [autoreplyContentStrategyId], references: [id])
@@ -95,13 +106,13 @@ model FocusDropType {
 }
 
 model DeliveryStrategy {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  description String
+  id                    Int         @id @default(autoincrement())
+  name                  String      @unique
+  description           String
   strategyAttributeKeys String[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  FocusDrops  FocusDrop[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  FocusDrops            FocusDrop[]
 }
 
 model DeliveryStrategyAttribute {

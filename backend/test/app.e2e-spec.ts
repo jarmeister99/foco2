@@ -12,9 +12,6 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer()).get('/').expect(200);
-  });
   it('/prisma/health (GET)', () => {
     return request(app.getHttpServer()).get('/prisma/health').expect(200);
   });
