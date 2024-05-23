@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
@@ -36,16 +36,18 @@ export class MessageContentService {
         },
       },
     });
-    await this.prismaService.messageContentStrategyAttribute.create({
-      data: {
-        key: 'mediaUrl',
-        value: data.mediaUrl,
-        FocusDrop: {
-          connect: {
-            id: dropId,
+    if (data.mediaUrl != undefined) {
+      await this.prismaService.messageContentStrategyAttribute.create({
+        data: {
+          key: 'mediaUrl',
+          value: data.mediaUrl,
+          FocusDrop: {
+            connect: {
+              id: dropId,
+            },
           },
         },
-      },
-    });
+      });
+    }
   }
 }

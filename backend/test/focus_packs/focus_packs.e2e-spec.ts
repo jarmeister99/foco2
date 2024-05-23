@@ -7,7 +7,7 @@ import { FocuspacksService } from '../../src/focuspacks/focuspacks.service';
 import { StrategyAttributesService } from '../../src/focuspacks/strategy/strategy-attributes.service';
 import { checkStrategyAttribute } from './strategy_test_utils';
 
-describe('Pack poller (e2e)', () => {
+describe('Focus pack and drop creation (e2e)', () => {
   let app: INestApplication;
   let focusPacksService: FocuspacksService;
   let prismaService: PrismaService;
@@ -28,8 +28,8 @@ describe('Pack poller (e2e)', () => {
     });
 
     beforeAll(async () => {
-      await prismaService.focusPackage.deleteMany();
       await prismaService.focusDrop.deleteMany();
+      await prismaService.focusPackage.deleteMany();
     });
 
     afterAll(async () => {

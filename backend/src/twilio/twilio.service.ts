@@ -18,12 +18,13 @@ export class TwilioService {
     this.phoneNumber = this.configService.get<string>('TWILIO_PHONE_NUMBER');
   }
 
-  sendSms(to: string, body: string) {
+  sendSms(to: string, body: string, mediaUrl?: string) {
     const client = new Twilio(this.accountSid, this.authToken);
     return client.messages.create({
       body,
       from: this.phoneNumber,
       to,
+      mediaUrl: mediaUrl ? [mediaUrl] : undefined,
     });
   }
 

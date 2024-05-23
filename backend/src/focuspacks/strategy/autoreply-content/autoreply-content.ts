@@ -61,16 +61,18 @@ export class AutoreplyContentService {
         },
       },
     });
-    await this.prismaService.autoreplyContentStrategyAttribute.create({
-      data: {
-        key: 'mediaUrl',
-        value: data.mediaUrl,
-        FocusDrop: {
-          connect: {
-            id: dropId,
+    if (data.mediaUrl !== undefined) {
+      await this.prismaService.autoreplyContentStrategyAttribute.create({
+        data: {
+          key: 'mediaUrl',
+          value: data.mediaUrl,
+          FocusDrop: {
+            connect: {
+              id: dropId,
+            },
           },
         },
-      },
-    });
+      });
+    }
   }
 }

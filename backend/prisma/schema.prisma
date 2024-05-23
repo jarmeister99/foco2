@@ -46,6 +46,7 @@ model User {
   dropsRespondedTo    FocusDrop[]        @relation("RespondedDrops")
   activeFocusPackages UserFocusPackage[] // Add this line
   ActivePackages      ActivePackages[]
+  autoreplyJobs       AutoreplyJob[]
 }
 
 model FocusPackage {
@@ -97,6 +98,8 @@ model FocusDrop {
 
   receivers  User[] @relation("ReceivedDrops")
   responders User[] @relation("RespondedDrops")
+
+  autoreplyJobs AutoreplyJob[]
 }
 
 model FocusDropType {
@@ -186,4 +189,16 @@ model AutoreplyTimingStrategyAttribute {
   updatedAt   DateTime  @updatedAt
   FocusDrop   FocusDrop @relation(fields: [focusDropId], references: [id], onDelete: Cascade)
   focusDropId Int
+}
+
+model AutoreplyJob {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  focusDropId Int
+  focusDrop   FocusDrop @relation(fields: [focusDropId], references: [id])
+  sendAt      DateTime
+  userText    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
